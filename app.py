@@ -1,5 +1,5 @@
 # ==============================================================================
-#           ФИНАЛЬНОЕ ПРИЛОЖЕНИЕ v5.1 (ПОЛНЫЙ КОД С ПРОСТЫМ ПАРОЛЕМ)
+#           ФИНАЛЬНОЕ ПРИЛОЖЕНИЕ v7.0 (ПОЛНЫЙ КОД. ВСЕ ВКЛЮЧЕНО.)
 # ==============================================================================
 
 import streamlit as st
@@ -31,37 +31,40 @@ hide_streamlit_style = """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 
-# --- 2. СУПЕР-ПРОСТАЯ СИСТЕМА ПАРОЛЕЙ ---
+# --- 2. СУПЕР-ПРОСТАЯ И НАДЕЖНАЯ СИСТЕМА ПАРОЛЕЙ ---
 def check_password():
     """Возвращает `True`, если пользователь ввел правильный пароль."""
 
     def password_entered():
         """Проверяет, является ли введенный пароль правильным."""
-        if st.session_state["password"] == st.secrets["password"]:
+        # Пароль должен быть сохранен в "секретах" Streamlit
+        # st.secrets["password"] сравнивается с тем, что ввел пользователь в поле "password"
+        if "password" in st.secrets and st.session_state["password"] == st.secrets["password"]:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]  # не храним пароль в сессии
+            del st.session_state["password"]  # не храним пароль в сессии после проверки
         else:
             st.session_state["password_correct"] = False
 
-    # Показываем поле для ввода пароля, только если он еще не был введен правильно
+    # Если пользователь уже ввел правильный пароль, просто возвращаем True
     if st.session_state.get("password_correct", False):
         return True
 
+    # Показываем поле для ввода пароля
     st.text_input(
         "Введите пароль для доступа:", type="password", on_change=password_entered, key="password"
     )
+    
+    # Показываем ошибку, только если была попытка ввода и она была неуспешной
     if "password_correct" in st.session_state and not st.session_state["password_correct"]:
         st.error("😕 Пароль неверный.")
-    elif "password_correct" not in st.session_state:
-        st.info("Пожалуйста, введите пароль для начала работы.")
 
-    return st.session_state.get("password_correct", False)
-
+    return False
 
 # --- 3. ОСНОВНАЯ ЛОГИКА ПРИЛОЖЕНИЯ ---
 st.title("👨‍💻 AI Бизнес-Аналитик")
 
 if check_password():
+    # Этот код выполнится только после ввода правильного пароля
     st.sidebar.success("Доступ разрешен. Добро пожаловать!")
     
     st.header("Загрузите ваш файл для анализа")
@@ -97,23 +100,21 @@ if check_password():
                 kpi_cols[0].metric("Общая выручка", f"{total_revenue:,.0f} тг".replace(',', ' '))
                 kpi_cols[1].metric("Количество заказов", f"{number_of_orders}")
                 kpi_cols[2].metric("Средний чек", f"{average_check:,.0f} тг".replace(',', ' '))
-
-                # --- ИСПРАВЛЕННЫЙ БЛОК: АНАЛИЗ КЛИЕНТОВ ---
-if 'ClientID' in df.columns:
-    st.header("Анализ по клиентам 🏆")
-    customer_spending = df.groupby('ClientID')['Price'].sum().sort_values(ascending=False)
-
-    st.write("Топ-10 клиентов по сумме трат:")
-    st.dataframe(customer_spending.head(10))
-                # --- ДОБАВЬ ЭТОТ КОД ---
-st.write("График трат по топ-10 клиентам:")
-fig_clients, ax_clients = plt.subplots(figsize=(12, 7))
-customer_spending.head(10).plot(kind='bar', ax=ax_clients, color='royalblue', legend=None)
-ax_clients.set_ylabel('Сумма трат (тенге)')
-ax_clients.set_xlabel('ID Клиента')
-plt.xticks(rotation=45)
-st.pyplot(fig_clients)
-# --- КОНЕЦ ДОБАВЛЕННОГО КОДА ---
+                
+                # --- АНАЛИЗ КЛИЕНТОВ (С ГРАФИКОМ) ---
+                if 'ClientID' in df.columns:
+                    st.header("Анализ по клиентам 🏆")
+                    customer_spending = df.groupby('ClientID')['Price'].sum().sort_values(ascending=False)
+                    st.write("Топ-10 клиентов по сумме трат:")
+                    st.dataframe(customer_spending.head(10))
+                    
+                    st.write("График трат по топ-10 клиентам:")
+                    fig_clients, ax_clients = plt.subplots(figsize=(12, 7))
+                    customer_spending.head(10).plot(kind='bar', ax=ax_clients, color='royalblue', legend=None)
+                    ax_clients.set_ylabel('Сумма трат (тенге)')
+                    ax_clients.set_xlabel('ID Клиента')
+                    plt.xticks(rotation=45)
+                    st.pyplot(fig_clients)
 
                 # --- АНАЛИЗ ПО ВРЕМЕНИ ---
                 st.header("Анализ по времени 🕒")
@@ -127,17 +128,17 @@ st.pyplot(fig_clients)
                 avg_popularity = menu_analysis['Popularity'].mean()
                 avg_revenue = menu_analysis['Revenue'].mean()
                 
-                fig, ax = plt.subplots(figsize=(14, 10))
-                ax.scatter(menu_analysis['Popularity'], menu_analysis['Revenue'], s=120, color='royalblue', alpha=0.6)
-                texts = [ax.text(row['Popularity'], row['Revenue'], index, fontsize=10) for index, row in menu_analysis.iterrows()]
-                adjust_text(texts, ax=ax, arrowprops=dict(arrowstyle='->', color='black', lw=0.5))
-                ax.axvline(x=avg_popularity, color='r', linestyle='--')
-                ax.axhline(y=avg_revenue, color='r', linestyle='--')
-                ax.set_title('Матрица Меню-Инжиниринга', fontsize=16)
-                ax.set_xlabel('Популярность (Количество продаж)')
-                ax.set_ylabel('Выручка (тенге)')
-                ax.grid(True)
-                st.pyplot(fig)
+                fig_menu, ax_menu = plt.subplots(figsize=(14, 10))
+                ax_menu.scatter(menu_analysis['Popularity'], menu_analysis['Revenue'], s=120, color='royalblue', alpha=0.6)
+                texts = [ax_menu.text(row['Popularity'], row['Revenue'], index, fontsize=10) for index, row in menu_analysis.iterrows()]
+                adjust_text(texts, ax=ax_menu, arrowprops=dict(arrowstyle='->', color='black', lw=0.5))
+                ax_menu.axvline(x=avg_popularity, color='r', linestyle='--')
+                ax_menu.axhline(y=avg_revenue, color='r', linestyle='--')
+                ax_menu.set_title('Матрица Меню-Инжиниринга', fontsize=16)
+                ax_menu.set_xlabel('Популярность (Количество продаж)')
+                ax_menu.set_ylabel('Выручка (тенге)')
+                ax_menu.grid(True)
+                st.pyplot(fig_menu)
 
                 # --- АНАЛИЗ "ИДЕАЛЬНЫХ ПАР" ---
                 st.header("Анализ 'Идеальных пар' 🧺")
@@ -160,4 +161,4 @@ st.pyplot(fig_clients)
                     st.info("В данных нет чеков с двумя и более товарами для анализа связей.")
 
             except Exception as e:
-                st.error(f"Произошла ошибка при анализе файла. Убедитесь, что формат файла и названия колонок верны. Ошибка: {e}")
+                st.error(f"Произошла ошибка при анализе файла. Ошибка: {e}")
