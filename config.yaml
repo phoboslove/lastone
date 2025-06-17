@@ -3,14 +3,12 @@ credentials:
     jsmith:
       email: jsmith@example.com
       name: John Smith
-      password: 'ЗАШИФРОВАННЫЙ_ПАРОЛЬ_1'
+      password: 'СЮДА_ТВОЙ_ПЕРВЫЙ_ЗАШИФРОВАННЫЙ_ПАРОЛЬ'
     rdoe:
       email: rdoe@example.com
       name: Rebecca Doe
-      password: 'ЗАШИФРОВАННЫЙ_ПАРОЛЬ_2'
+      password: 'СЮДА_ТВОЙ_ВТОРОЙ_ЗАШИФРОВАННЫЙ_ПАРОЛЬ'
 cookie:
   expiry_days: 30
-  key: 'some_random_key'
-  name: 'some_cookie_name'
-preauthorized:
-  emails: []
+  key: 'abcdefg_123456'  # Просто случайный набор символов
+  name: 'analytics_cookie'
