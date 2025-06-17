@@ -10,5 +10,5 @@ credentials:
       password: '$2b$12$F1gH2i3j4k5L6m7n8o9p0u2v3w4x5y6z7A8B9C0D1E2F3G4H5I6J'
 cookie:
   expiry_days: 30
-  key: 'abcdefg_123456'
+  key: 'a_truly_random_secret_key_12345'
   name: 'analytics_cookie'
