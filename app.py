@@ -21,7 +21,7 @@ except ImportError:
 # --- 1. НАСТРОЙКА СТРАНИЦЫ ---
 st.set_page_config(page_title="Бизнес-Аналитик", page_icon="📈", layout="wide")
 warnings.filterwarnings('ignore')
-st.set_option('deprecation.showPyplotGlobalUse', False)
+#st.set_option('deprecation.showPyplotGlobalUse', False)
 
 hide_streamlit_style = """
             <style>
