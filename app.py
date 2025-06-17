@@ -1,5 +1,5 @@
 # ==============================================================================
-#           ФИНАЛЬНОЕ ПРИЛОЖЕНИЕ v4.2 (САМАЯ СТАБИЛЬНАЯ ВЕРСИЯ)
+#           ФИНАЛЬНОЕ ПРИЛОЖЕНИЕ v4.3 (СУПЕР-НАДЕЖНАЯ АВТОРИЗАЦИЯ)
 # ==============================================================================
 
 import streamlit as st
@@ -11,16 +11,9 @@ import streamlit_authenticator as stauth
 import yaml
 from yaml.loader import SafeLoader
 
-try:
-    from mlxtend.frequent_patterns import apriori, association_rules
-    from adjustText import adjust_text
-except ImportError:
-    st.error("Ошибка: Необходимые библиотеки (mlxtend, adjustText) не установлены. Проверьте ваш файл requirements.txt.")
-    st.stop()
-
+# --- НАСТРОЙКА СТРАНИЦЫ ---
 st.set_page_config(page_title="Бизнес-Аналитик", page_icon="🔐", layout="wide")
 warnings.filterwarnings('ignore')
-
 hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -30,13 +23,15 @@ hide_streamlit_style = """
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
+# --- ЗАГРУЗКА КОНФИГУРАЦИИ ---
 try:
     with open('config.yaml') as file:
         config = yaml.load(file, Loader=SafeLoader)
 except FileNotFoundError:
-    st.error("Ошибка: Файл конфигурации 'config.yaml' не найден. Убедитесь, что он загружен на GitHub вместе с app.py.")
+    st.error("Ошибка: Файл конфигурации 'config.yaml' не найден.")
     st.stop()
 
+# --- СОЗДАНИЕ ОБЪЕКТА АУТЕНТИФИКАТОРА ---
 authenticator = stauth.Authenticate(
     config['credentials'],
     config['cookie']['name'],
@@ -44,33 +39,34 @@ authenticator = stauth.Authenticate(
     config['cookie']['expiry_days']
 )
 
+# --- ЛОГИКА ВХОДА ---
 st.title("👨‍💻 AI Бизнес-Аналитик")
+st.write("Пожалуйста, войдите для доступа к системе.")
 
-# --- ГЛАВНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ ---
-authentication_status = authenticator.login('main')
+# Отображаем форму входа
+authenticator.login()
 
-if authentication_status:
-    # И ЗДЕСЬ
-    name = st.session_state.get("name")
+if st.session_state["authentication_status"]:
+    # ---- ЕСЛИ ПОЛЬЗОВАТЕЛЬ УСПЕШНО ВОШЕЛ ----
     
     with st.sidebar:
-        st.write(f'Добро пожаловать, *{name}*!')
+        st.write(f'Добро пожаловать, *{st.session_state["name"]}*!')
         authenticator.logout('Выйти', 'main')
 
+    # --- ОСНОВНАЯ ЧАСТЬ ПРИЛОЖЕНИЯ ---
     st.header("Загрузите ваш файл для анализа")
     uploaded_file = st.file_uploader("Выберите файл с продажами...", type=['csv', 'xlsx'], label_visibility="collapsed")
 
     if uploaded_file is not None:
-        # Весь аналитический блок остается без изменений...
         with st.spinner('Анализирую данные...'):
             try:
-                # ... (здесь весь твой код для анализа, который мы уже сделали) ...
-                 st.info("Аналитический блок в разработке. Загрузите файл, чтобы увидеть его в действии.")
-
+                # ВЕСЬ ТВОЙ АНАЛИТИЧЕСКИЙ КОД ЗДЕСЬ...
+                st.success("Файл успешно загружен! Аналитический блок в разработке.")
+                # ... (здесь будет код для чтения df и построения графиков)
             except Exception as e:
                 st.error(f"Произошла ошибка при анализе файла. Ошибка: {e}")
 
-elif authentication_status == False:
+elif st.session_state["authentication_status"] == False:
     st.error('Имя пользователя или пароль неверны')
-elif authentication_status is None:
-    st.warning('Пожалуйста, введите имя пользователя и пароль для доступа.')
+elif st.session_state["authentication_status"] is None:
+    st.warning('Пожалуйста, введите имя пользователя и пароль.')
