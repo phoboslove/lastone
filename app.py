@@ -114,6 +114,7 @@ ax_clients.set_xlabel('ID Клиента')
 plt.xticks(rotation=45)
 st.pyplot(fig_clients)
 # --- КОНЕЦ ДОБАВЛЕННОГО КОДА ---
+
                 # --- АНАЛИЗ ПО ВРЕМЕНИ ---
                 st.header("Анализ по времени 🕒")
                 daily_sales = df.groupby(df['OrderDate'].dt.date)['Price'].sum()
