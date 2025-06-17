@@ -1,5 +1,5 @@
 # ==============================================================================
-#           ФИНАЛЬНОЕ ПРИЛОЖЕНИЕ v5.0 (ПОЛНЫЙ КОД)
+#           ФИНАЛЬНОЕ ПРИЛОЖЕНИЕ v5.1 (ПОЛНЫЙ КОД С ПРОСТЫМ ПАРОЛЕМ)
 # ==============================================================================
 
 import streamlit as st
@@ -7,22 +7,20 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
-import streamlit_authenticator as stauth
-import yaml
-from yaml.loader import SafeLoader
 
+# Попытка импортировать опциональные библиотеки с обработкой ошибок
 try:
     from mlxtend.frequent_patterns import apriori, association_rules
     from adjustText import adjust_text
 except ImportError:
-    st.error("Ошибка: Необходимые библиотеки не установлены. Проверьте ваш файл requirements.txt.")
+    st.error("Ошибка: Необходимые библиотеки (mlxtend, adjustText) не установлены. Пожалуйста, проверьте ваш файл requirements.txt.")
     st.stop()
 
 # --- 1. НАСТРОЙКА СТРАНИЦЫ ---
 st.set_page_config(page_title="Бизнес-Аналитик", page_icon="📈", layout="wide")
 warnings.filterwarnings('ignore')
 
-
+# Скрываем лишние элементы интерфейса Streamlit
 hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -32,35 +30,43 @@ hide_streamlit_style = """
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
-# --- 2. БЛОК АВТОРИЗАЦИИ ---
-try:
-    with open('config.yaml', 'r', encoding='utf-8') as file:
-        config = yaml.load(file, Loader=SafeLoader)
-except FileNotFoundError:
-    st.error("Ошибка: Файл конфигурации 'config.yaml' не найден.")
-    st.stop()
 
-authenticator = stauth.Authenticate(
-    config['credentials'],
-    config['cookie']['name'],
-    config['cookie']['key'],
-    config['cookie']['expiry_days']
-)
+# --- 2. СУПЕР-ПРОСТАЯ СИСТЕМА ПАРОЛЕЙ ---
+def check_password():
+    """Возвращает `True`, если пользователь ввел правильный пароль."""
 
+    def password_entered():
+        """Проверяет, является ли введенный пароль правильным."""
+        if st.session_state["password"] == st.secrets["password"]:
+            st.session_state["password_correct"] = True
+            del st.session_state["password"]  # не храним пароль в сессии
+        else:
+            st.session_state["password_correct"] = False
+
+    # Показываем поле для ввода пароля, только если он еще не был введен правильно
+    if st.session_state.get("password_correct", False):
+        return True
+
+    st.text_input(
+        "Введите пароль для доступа:", type="password", on_change=password_entered, key="password"
+    )
+    if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+        st.error("😕 Пароль неверный.")
+    elif "password_correct" not in st.session_state:
+        st.info("Пожалуйста, введите пароль для начала работы.")
+
+    return st.session_state.get("password_correct", False)
+
+
+# --- 3. ОСНОВНАЯ ЛОГИКА ПРИЛОЖЕНИЯ ---
 st.title("👨‍💻 AI Бизнес-Аналитик")
 
-authenticator.login()
-
-if st.session_state["authentication_status"]:
-    # ---- ЕСЛИ ПОЛЬЗОВАТЕЛЬ УСПЕШНО ВОШЕЛ ----
+if check_password():
+    st.sidebar.success("Доступ разрешен. Добро пожаловать!")
     
-    with st.sidebar:
-        st.write(f'Добро пожаловать, *{st.session_state["name"]}*!')
-        authenticator.logout('Выйти', 'main')
-
     st.header("Загрузите ваш файл для анализа")
     uploaded_file = st.file_uploader("Выберите файл с продажами...", type=['csv', 'xlsx'], label_visibility="collapsed")
-
+    
     if uploaded_file is not None:
         with st.spinner('Анализирую данные... Это может занять до минуты...'):
             try:
@@ -72,16 +78,16 @@ if st.session_state["authentication_status"]:
                 
                 required_columns = ['OrderID', 'OrderDate', 'Dish', 'Price']
                 if not all(col in df.columns for col in required_columns):
-                    st.error(f"Ошибка: В вашем файле отсутствуют обязательные колонки: {', '.join(required_columns)}")
+                    st.error(f"Ошибка: В вашем файле отсутствуют обязательные колонки. Убедитесь, что есть: {', '.join(required_columns)}")
                     st.stop()
                     
                 df['OrderDate'] = pd.to_datetime(df['OrderDate'], errors='coerce')
                 st.success(f"✔️ Файл '{uploaded_file.name}' успешно загружен. Найдено {len(df)} строк.")
                 
-                st.subheader("Предпросмотр данных")
-                st.dataframe(df.head())
+                with st.expander("Предпросмотр данных"):
+                    st.dataframe(df.head())
 
-                # --- ОБЩИЕ KPI ---
+                # --- ОСНОВНЫЕ KPI ---
                 st.header("Ключевые показатели бизнеса 📊")
                 total_revenue = df['Price'].sum()
                 number_of_orders = df['OrderID'].nunique()
@@ -138,8 +144,3 @@ if st.session_state["authentication_status"]:
 
             except Exception as e:
                 st.error(f"Произошла ошибка при анализе файла. Убедитесь, что формат файла и названия колонок верны. Ошибка: {e}")
-
-elif st.session_state["authentication_status"] == False:
-    st.error('Имя пользователя или пароль неверны')
-elif st.session_state["authentication_status"] is None:
-    st.warning('Пожалуйста, введите имя пользователя и пароль для доступа.')
