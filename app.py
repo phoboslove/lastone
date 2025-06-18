@@ -7,9 +7,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
-import plotly.express as px
 
-# Попытка импортировать опциональные библиотеки с обработкой ошибок
+# Попытка импортировать опциональные библиотеки
 try:
     from mlxtend.frequent_patterns import apriori, association_rules
     from adjustText import adjust_text
@@ -39,27 +38,23 @@ def check_password():
     def password_entered():
         """Проверяет, является ли введенный пароль правильным."""
         # Пароль должен быть сохранен в "секретах" Streamlit
-        # st.secrets["password"] сравнивается с тем, что ввел пользователь в поле "password"
         if "password" in st.secrets and st.session_state["password"] == st.secrets["password"]:
             st.session_state["password_correct"] = True
-            del st.session_state["password"]  # не храним пароль в сессии после проверки
+            del st.session_state["password"] 
         else:
             st.session_state["password_correct"] = False
 
-    # Если пользователь уже ввел правильный пароль, просто возвращаем True
     if st.session_state.get("password_correct", False):
         return True
 
-    # Показываем поле для ввода пароля
     st.text_input(
         "Введите пароль для доступа:", type="password", on_change=password_entered, key="password"
     )
     
-    # Показываем ошибку, только если была попытка ввода и она была неуспешной
-    if "password_correct" in st.session_state and not st.session_state["password_correct"]:
+    if "password_correct" in st.session_state and not st.session_state["password_correct"] and st.session_state["password"] != '':
         st.error("😕 Пароль неверный.")
-
-    return False
+    
+    return st.session_state.get("password_correct", False)
 
 # --- 3. ОСНОВНАЯ ЛОГИКА ПРИЛОЖЕНИЯ ---
 st.title("👨‍💻 AI Бизнес-Аналитик")
@@ -85,7 +80,7 @@ if check_password():
                     st.error(f"Ошибка: В вашем файле отсутствуют обязательные колонки. Убедитесь, что есть: {', '.join(required_columns)}")
                     st.stop()
                     
-                df['OrderDate'] = pd.to_datetime(df['OrderDate'], errors='coerce')
+                df['OrderDate'] = pd.to_datetime(df['OrderDate'], errors='coerce').dt.date
                 st.success(f"✔️ Файл '{uploaded_file.name}' успешно загружен. Найдено {len(df)} строк.")
                 
                 with st.expander("Предпросмотр данных"):
@@ -108,41 +103,18 @@ if check_password():
                     customer_spending = df.groupby('ClientID')['Price'].sum().sort_values(ascending=False)
                     st.write("Топ-10 клиентов по сумме трат:")
                     st.dataframe(customer_spending.head(10))
-
-                # --- НОВЫЙ ИНТЕРАКТИВНЫЙ ГРАФИК С PLOTLY ---
-
-
-st.write("График трат по топ-10 клиентам:")
-
-# Готовим данные для графика
-top_10_clients = customer_spending.head(10).reset_index()
-
-fig_clients_plotly = px.bar(
-    top_10_clients,
-    x='ClientID',
-    y='Price',
-    title="Топ-10 клиентов по сумме трат",
-    labels={'Price': 'Сумма трат (тенге)', 'ClientID': 'ID Клиента'},
-    text_auto='.2s'  # Добавляет красивые подписи прямо на столбики
-)
-
-fig_clients_plotly.update_layout(showlegend=False)
-fig_clients_plotly.update_traces(marker_color='royalblue', textposition='outside')
-
-# Используем специальную команду для вывода интерактивного графика
-st.plotly_chart(fig_clients_plotly, use_container_width=True)
-# --- КОНЕЦ НОВОГО БЛОКА ---
-                    #st.write("График трат по топ-10 клиентам:")
-                    #fig_clients, ax_clients = plt.subplots(figsize=(12, 7))
-                   # customer_spending.head(10).plot(kind='bar', ax=ax_clients, color='royalblue', legend=None)
-                    #ax_clients.set_ylabel('Сумма трат (тенге)')
-                   # ax_clients.set_xlabel('ID Клиента')
-                  #  plt.xticks(rotation=45)
-                  #  st.pyplot(fig_clients)
+                    
+                    st.write("График трат по топ-10 клиентам:")
+                    fig_clients, ax_clients = plt.subplots(figsize=(12, 7))
+                    customer_spending.head(10).plot(kind='bar', ax=ax_clients, color='royalblue', legend=None)
+                    ax_clients.set_ylabel('Сумма трат (тенге)')
+                    ax_clients.set_xlabel('ID Клиента')
+                    plt.xticks(rotation=45)
+                    st.pyplot(fig_clients)
 
                 # --- АНАЛИЗ ПО ВРЕМЕНИ ---
                 st.header("Анализ по времени 🕒")
-                daily_sales = df.groupby(df['OrderDate'].dt.date)['Price'].sum()
+                daily_sales = df.groupby(df['OrderDate'])['Price'].sum()
                 st.write("Динамика выручки по дням:")
                 st.line_chart(daily_sales)
 
@@ -168,7 +140,7 @@ st.plotly_chart(fig_clients_plotly, use_container_width=True)
                 st.header("Анализ 'Идеальных пар' 🧺")
                 basket = (df.groupby(['OrderID', 'Dish'])['OrderID'].count().unstack().reset_index().fillna(0).set_index('OrderID'))
                 def encode_units(x): return 1 if x >= 1 else 0
-                basket_sets = basket.applymap(encode_units)
+                basket_sets = basket.apply(lambda col: col.map(encode_units))
                 
                 if basket_sets.shape[1] > 0 and not basket_sets.sum(axis=1).max() < 2:
                     frequent_itemsets = apriori(basket_sets, min_support=0.01, use_colnames=True)
@@ -177,12 +149,6 @@ st.plotly_chart(fig_clients_plotly, use_container_width=True)
                         if not rules.empty:
                             st.write("Найденные правила 'Если... то...':")
                             st.dataframe(rules.sort_values(by=['lift', 'confidence'], ascending=False)[['antecedents', 'consequents', 'support', 'confidence', 'lift']].head(10))
-                        else:
-                            st.info("Сильных 'связок' между товарами не найдено.")
-                    else:
-                        st.info("Популярных наборов товаров не найдено.")
-                else:
-                    st.info("В данных нет чеков с двумя и более товарами для анализа связей.")
 
             except Exception as e:
                 st.error(f"Произошла ошибка при анализе файла. Ошибка: {e}")
