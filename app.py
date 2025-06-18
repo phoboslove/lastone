@@ -7,6 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import warnings
+import plotly.express as px
 
 # Попытка импортировать опциональные библиотеки с обработкой ошибок
 try:
@@ -109,7 +110,7 @@ if check_password():
                     st.dataframe(customer_spending.head(10))
 
                 # --- НОВЫЙ ИНТЕРАКТИВНЫЙ ГРАФИК С PLOTLY ---
-import plotly.express as px
+
 
 st.write("График трат по топ-10 клиентам:")
 
