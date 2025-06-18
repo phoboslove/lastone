@@ -1,9 +1,5 @@
 streamlit
 pandas
-matplotlib
-mlxtend
-adjustText
 openpyxl
-streamlit-authenticator
-pyyaml
+mlxtend
 plotly
