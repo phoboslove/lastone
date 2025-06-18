@@ -107,14 +107,37 @@ if check_password():
                     customer_spending = df.groupby('ClientID')['Price'].sum().sort_values(ascending=False)
                     st.write("Топ-10 клиентов по сумме трат:")
                     st.dataframe(customer_spending.head(10))
-                    
-                    st.write("График трат по топ-10 клиентам:")
-                    fig_clients, ax_clients = plt.subplots(figsize=(12, 7))
-                    customer_spending.head(10).plot(kind='bar', ax=ax_clients, color='royalblue', legend=None)
-                    ax_clients.set_ylabel('Сумма трат (тенге)')
-                    ax_clients.set_xlabel('ID Клиента')
-                    plt.xticks(rotation=45)
-                    st.pyplot(fig_clients)
+
+                # --- НОВЫЙ ИНТЕРАКТИВНЫЙ ГРАФИК С PLOTLY ---
+import plotly.express as px
+
+st.write("График трат по топ-10 клиентам:")
+
+# Готовим данные для графика
+top_10_clients = customer_spending.head(10).reset_index()
+
+fig_clients_plotly = px.bar(
+    top_10_clients,
+    x='ClientID',
+    y='Price',
+    title="Топ-10 клиентов по сумме трат",
+    labels={'Price': 'Сумма трат (тенге)', 'ClientID': 'ID Клиента'},
+    text_auto='.2s'  # Добавляет красивые подписи прямо на столбики
+)
+
+fig_clients_plotly.update_layout(showlegend=False)
+fig_clients_plotly.update_traces(marker_color='royalblue', textposition='outside')
+
+# Используем специальную команду для вывода интерактивного графика
+st.plotly_chart(fig_clients_plotly, use_container_width=True)
+# --- КОНЕЦ НОВОГО БЛОКА ---
+                    #st.write("График трат по топ-10 клиентам:")
+                    #fig_clients, ax_clients = plt.subplots(figsize=(12, 7))
+                   # customer_spending.head(10).plot(kind='bar', ax=ax_clients, color='royalblue', legend=None)
+                    #ax_clients.set_ylabel('Сумма трат (тенге)')
+                   # ax_clients.set_xlabel('ID Клиента')
+                  #  plt.xticks(rotation=45)
+                  #  st.pyplot(fig_clients)
 
                 # --- АНАЛИЗ ПО ВРЕМЕНИ ---
                 st.header("Анализ по времени 🕒")
